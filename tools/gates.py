@@ -1,4 +1,5 @@
 import numpy as np
+from math import cos, sin
 
 class _GateDict():
 
@@ -39,18 +40,19 @@ _GATES_1QB = {
     'H': np.array([[1, -1], [1, 1]]) / np.sqrt(2.),
     'S': np.array([[1., 0.], [0., 1j]]),
     'T': np.array([[1., 0.], [0., np.exp(1j * np.pi / 4.)]]),
-    'RX': lambda theta: np.cos(0.5 * theta) * np.eye(2) - 1j * np.sin(0.5 * theta) * PAULIS['X'],
-    'RY': lambda theta: np.cos(0.5 * theta) * np.eye(2) - 1j * np.sin(0.5 * theta) * PAULIS['Y'],
-    'RZ': lambda theta: np.cos(0.5 * theta) * np.eye(2) - 1j * np.sin(0.5 * theta) * PAULIS['Z'],
+    'RX': lambda theta: cos(0.5 * theta) * np.eye(2) - 1j * sin(0.5 * theta) * PAULIS['X'],
+    'RY': lambda theta: cos(0.5 * theta) * np.eye(2) - 1j * sin(0.5 * theta) * PAULIS['Y'],
+    'RZ': lambda theta: cos(0.5 * theta) * np.eye(2) - 1j * sin(0.5 * theta) * PAULIS['Z'],
 }
 
 _GATES_2QB = {
     'CZ': np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]]),
     'CNOT': np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]),
     'SWAP': np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]),
+    'C': lambda gate: np.block([[np.eye(2), np.zeros((2, 2))], [np.zeros((2, 2)), GATES_1QB[gate]]]),
 }
 
-######## Syntacic sugar #######
+######## Syntactic sugar #######
 
 GATES_1QB = _GateDict(_GATES_1QB)
 GATES_2QB = _GateDict(_GATES_2QB)
