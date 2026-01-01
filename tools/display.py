@@ -31,7 +31,7 @@ def print_circuit(circuit):
                     to_print += '\u2500\u2500\u2500' # ---
                     continue
                 if qb == i:
-                    if gate in ['CNOT', 'CZ']:
+                    if gate[0] == 'C':
                         to_print += '\u2500\u25cf\u2500' # -@-
                     elif gate == 'SWAP':
                         to_print += '\u2500\u00d7\u2500' # -x-
@@ -44,6 +44,8 @@ def print_circuit(circuit):
                         to_print += '\u2500X\u2500' # -X-
                     elif gate == 'SWAP':
                         to_print += '\u2500\u00d7\u2500' # -x-
+                    elif gate[0] == 'C':
+                        to_print += f'\u2500{gate[1][0]}\u2500' # -H-
                     else:
                         raise ValueError(f"Gate '{gate}' unknown.")
                 else: # i < qb < j
