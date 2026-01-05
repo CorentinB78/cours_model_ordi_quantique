@@ -11,6 +11,7 @@ def get_nb_qubits(circuit):
             n = max(n, i + 1)
     return n
 
+
 def invert_circuit(circuit):
     """Invert a circuit"""
     out = []
@@ -18,6 +19,7 @@ def invert_circuit(circuit):
         out.append((INVERSE[op[0]], *op[1:]))
 
     return out
+
 
 ######## Useful circuits #########
 
@@ -41,6 +43,44 @@ def make_W_circuit(nb_qubits):
         circ.append(('CNOT', n-1, n))
     circ.append(('X', 0))
     return circ
+
+
+def make_circuit_ising(nb_qubits, nb_trotter=None, delta_t=0.1):
+    if nb_trotter is None:
+        nb_trotter = nb_qubits
+    J = 1.0
+    h = 0.2
+    phi = 2 * delta_t * np.sqrt(J**2 + h**2)
+    theta = np.arccos(2 * delta_t * J / phi)
+    circ = []
+
+    def layer_fw(circ):
+        circ.append((('RX', delta_t * h), 0))
+        for i in range(nb_qubits-1):
+            circ.append(('CNOT', i, i+1))
+            circ.append((('RY', -theta), i+1))
+            circ.append((('RZ', phi), i+1))
+            circ.append((('RY', theta), i+1))
+            circ.append(('CNOT', i, i+1))
+
+    def layer_bw(circ):
+        for i in range(nb_qubits-2, 0, -1):
+            circ.append(('CNOT', i, i+1))
+            circ.append((('RY', -theta), i+1))
+            circ.append((('RZ', phi), i+1))
+            circ.append((('RY', theta), i+1))
+            circ.append(('CNOT', i, i+1))
+        circ.append((('RX', delta_t * h), 0))
+
+    for _ in range(nb_trotter // 2):
+        layer_fw(circ)
+        layer_bw(circ)
+
+    if nb_trotter % 2 == 1:
+        layer_fw(circ)
+
+    return circ
+
 
 def make_QFT_circuit(nb_qubits):
     """QFT circuit without swap part"""

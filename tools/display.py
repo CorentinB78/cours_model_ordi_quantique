@@ -11,45 +11,56 @@ def print_state(state, ignore_zeros=True):
     print()
 
 
-def print_circuit(circuit):
+def print_circuit(circuit, nb_cols=120):
     """Prints a circuit in text format. This uses unicode characters. Experimental."""
     n = get_nb_qubits(circuit)
-    to_print = ""
-    for qb in range(n):
-        to_print += '|0>'
-        for op in circuit:
-            
-            if len(op) == 2:
-                gate, i = op
+    to_print_store = ''
+    to_print = ['|0>'] * n
+    col_counter = 3
+
+    for op in circuit:
+        if len(op) == 2:
+            gate, i = op
+            for qb in range(n):
                 if i != qb:
-                    to_print += '\u2500\u2500\u2500' # ---
-                    continue
-                to_print += f'\u2500{gate[0]}\u2500' # -H-
-            elif len(op) == 3:
-                gate, i, j = op
+                    to_print[qb] += '\u2500\u2500\u2500' # ---
+                else:
+                    to_print[qb] += f'\u2500{gate[0][0]}\u2500' # -H-
+            
+        elif len(op) == 3:
+            gate, i, j = op
+            for qb in range(n):
                 if qb < min(i, j) or max(i, j) < qb:
-                    to_print += '\u2500\u2500\u2500' # ---
+                    to_print[qb] += '\u2500\u2500\u2500' # ---
                     continue
                 if qb == i:
                     if gate[0] == 'C':
-                        to_print += '\u2500\u25cf\u2500' # -@-
+                        to_print[qb] += '\u2500\u25cf\u2500' # -@-
                     elif gate == 'SWAP':
-                        to_print += '\u2500\u00d7\u2500' # -x-
+                        to_print[qb] += '\u2500\u00d7\u2500' # -x-
                     else:
                         raise ValueError(f"Gate '{gate}' unknown.")
                 elif qb == j:
                     if gate == 'CZ':
-                        to_print += '\u2500\u25cf\u2500' # -@-
+                        to_print[qb] += '\u2500\u25cf\u2500' # -@-
                     elif gate == 'CNOT':
-                        to_print += '\u2500X\u2500' # -X-
+                        to_print[qb] += '\u2500X\u2500' # -X-
                     elif gate == 'SWAP':
-                        to_print += '\u2500\u00d7\u2500' # -x-
+                        to_print[qb] += '\u2500\u00d7\u2500' # -x-
                     elif gate[0] == 'C':
-                        to_print += f'\u2500{gate[1][0]}\u2500' # -H-
+                        to_print[qb] += f'\u2500{gate[1][0][0]}\u2500' # -H-
                     else:
                         raise ValueError(f"Gate '{gate}' unknown.")
                 else: # i < qb < j
-                    to_print += '\u2500\u253c\u2500' # -|-
-        to_print += "\n"
+                    to_print[qb] += '\u2500\u253c\u2500' # -|-
+        col_counter += 3
 
-    print(to_print)
+        if col_counter >= nb_cols:
+            to_print_store += '\n'.join(to_print) + '\n\n'
+            to_print = [''] * n
+            col_counter = 0
+
+    if len(to_print[0]) > 0:
+        to_print_store += '\n'.join(to_print) + '\n'
+        
+    print(to_print_store)
