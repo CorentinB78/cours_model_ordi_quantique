@@ -46,12 +46,15 @@ def make_W_circuit(nb_qubits):
 
 
 def make_circuit_ising(nb_qubits, nb_trotter=None, delta_t=0.1):
+    """
+    Circuit reproducing the dynamics of a 1D Ising model.
+    """
     if nb_trotter is None:
         nb_trotter = nb_qubits
     J = 1.0
     h = 0.2
-    phi = 2 * delta_t * np.sqrt(J**2 + h**2)
-    theta = np.arccos(2 * delta_t * J / phi)
+    phi = 2 * delta_t * sqrt(J**2 + h**2)
+    theta = acos(2 * delta_t * J / phi)
     circ = []
 
     def layer_fw(circ):
