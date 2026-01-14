@@ -1,6 +1,8 @@
 from math import acos, sqrt, pi
 from tools.gates import INVERSE
- 
+from tools.dontread import mysterious_alpha as _mysterious_alpha
+
+
 ####### Circuits utils #########
 
 def get_nb_qubits(circuit):
@@ -123,4 +125,29 @@ def make_QFT_circuit(nb_qubits):
 def make_inv_QFT_circuit(nb_qubits):
     """Inverse QFT circuit without swap part"""
     return invert_circuit(make_QFT_circuit(nb_qubits))
-   
+
+
+def make_QPE_circuit_phase(nb_result_qubits, alpha=None):
+    """Circuit for Quantum Phase Estimation with U being a phase gate on a single qubit with a mysterious phase..."""
+    if nb_result_qubits <= 0:
+        raise ValueError("Nb of qubits must be > 0")
+    out = []
+
+    if alpha is None:
+        alpha = _mysterious_alpha
+
+    for k in range(nb_result_qubits):
+        out.append(('H', k))
+        
+    for k in range(nb_result_qubits):
+        out.append((('C', ('P', alpha * float(2**k))), nb_result_qubits - 1, nb_result_qubits))
+        for i in range(nb_result_qubits - 2, k-1, -1):
+            out.append(('SWAP', i, i+1))
+
+    out = out + make_inv_QFT_circuit(nb_result_qubits)
+    
+    for k in range(nb_result_qubits):
+        out.append(('M', k))
+
+    return out
+
