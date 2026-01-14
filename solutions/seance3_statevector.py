@@ -1,5 +1,7 @@
 import numpy as np
 from tools.gates import GATES_1QB, GATES_2QB
+from tools.circuits import get_nb_qubits
+
 
 def apply_1qb_gate(state, gate, qubit, nb_qubits):
     assert 0 <= qubit < nb_qubits
@@ -10,6 +12,7 @@ def apply_1qb_gate(state, gate, qubit, nb_qubits):
         unitary = np.kron(unitary, np.eye(2**(nb_qubits - qubit - 1)))
 
     return unitary @ state
+
 
 def apply_adj_2qb_gate(state, gate, qubit1, qubit2, nb_qubits):
     assert qubit1 != qubit2
@@ -32,6 +35,7 @@ def apply_adj_2qb_gate(state, gate, qubit1, qubit2, nb_qubits):
 
     return unitary @ state
 
+
 def apply_measure(state, qubit, nb_qubits):
     proj_0 = np.array([[1, 0], [0, 0]])
     if qubit > 0:
@@ -50,19 +54,33 @@ def apply_measure(state, qubit, nb_qubits):
         return state_1 / np.linalg.norm(state_1), 1
 
 
-def emulate_circuit(circuit, nb_qubits):
+def emulate_circuit(circuit, nb_qubits=None):
+    if nb_qubits is None:
+        nb_qubits = get_nb_qubits(circuit)
+    if nb_qubits <= 0:
+        raise ValueError("Nb of qubits must be > 0")
+    if nb_qubits > 12:
+        raise ValueError("Statevector emulation for more than 12 qubits takes a lot of memory. Try something else.")
+
     psi = np.zeros((2 ** nb_qubits,), dtype=complex)
     psi[0] = 1.
+    outcome = []
 
     for op in circuit:
         if len(op) == 2:
             gate, qb = op
-            psi = apply_1qb_gate(psi, gate, qb, nb_qubits)
+            if gate == 'M':  # measurement
+                psi, bit = apply_measure(psi, qb, nb_qubits)
+                outcome.append(bit)
+            else:
+                psi = apply_1qb_gate(psi, gate, qb, nb_qubits)
         elif len(op) == 3:
             gate, qb1, qb2 = op
             psi = apply_adj_2qb_gate(psi, gate, qb1, qb2, nb_qubits)
 
-    return psi
+    outcome = ''.join(str(b) for b in outcome)
+    return psi, outcome
+
 
 if __name__ == '__main__':
     from tools.circuits import make_GHZ_circuit

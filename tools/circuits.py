@@ -25,6 +25,8 @@ def invert_circuit(circuit):
 
 def make_GHZ_circuit(nb_qubits):
     """Returns a circuit producing a GHZ state"""
+    if nb_qubits <= 0:
+        raise ValueError("Nb of qubits must be > 0")
     circuit = [('H', 0)]
     for i in range(nb_qubits - 1):
         circuit.append(('CNOT', i, i+1))
@@ -34,6 +36,8 @@ def make_GHZ_circuit(nb_qubits):
 
 def make_W_circuit(nb_qubits):
     """Returns a circuit producing a W state"""
+    if nb_qubits <= 0:
+        raise ValueError("Nb of qubits must be > 0")
     rot = lambda n: ('RY', 2 * acos(1. / sqrt(n)))
     circ = []
     circ.append((rot(nb_qubits), 0))
@@ -47,8 +51,14 @@ def make_W_circuit(nb_qubits):
 
 def make_circuit_ising(nb_qubits, nb_trotter=None, delta_t=0.1):
     """
-    Circuit reproducing the dynamics of a 1D Ising model.
+    Circuit reproducing the dynamics of a 1D Ising model:
+
+    H = -J \sum Z_i Z_{i+1} + h \sum X_i
+
+    with J = 1 and h = 0.2.
     """
+    if nb_qubits <= 0:
+        raise ValueError("Nb of qubits must be > 0")
     if nb_trotter is None:
         nb_trotter = nb_qubits
     J = 1.0
@@ -108,6 +118,7 @@ def make_QFT_circuit(nb_qubits):
 
     out.append(('H', nb_qubits-1))
     return out
+
 
 def make_inv_QFT_circuit(nb_qubits):
     """Inverse QFT circuit without swap part"""
