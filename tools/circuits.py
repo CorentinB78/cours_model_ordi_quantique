@@ -51,11 +51,11 @@ def make_W_circuit(nb_qubits):
     return circ
 
 
-def make_circuit_ising(nb_qubits, nb_trotter=None, delta_t=0.1):
+def make_circuit_ising(nb_qubits, nb_trotter=None, delta_t=0.1, J=1.0, h=0.2):
     """
     Circuit reproducing the dynamics of a 1D Ising model:
 
-    H = -J \sum Z_i Z_{i+1} + h \sum X_i
+    H = J \sum Z_i Z_{i+1} + h \sum X_i
 
     with J = 1 and h = 0.2.
     """
@@ -63,29 +63,25 @@ def make_circuit_ising(nb_qubits, nb_trotter=None, delta_t=0.1):
         raise ValueError("Nb of qubits must be > 0")
     if nb_trotter is None:
         nb_trotter = nb_qubits
-    J = 1.0
-    h = 0.2
-    phi = 2 * delta_t * sqrt(J**2 + h**2)
-    theta = acos(2 * delta_t * J / phi)
+
     circ = []
 
+    def apply_trotter(circ, qb):
+        if qb == 0:
+            circ.append((('RX', delta_t * 2 * h), 0))
+        else:
+            circ.append(('CNOT', qb-1, qb))
+            circ.append((('RZ', delta_t * 2 * J), qb))
+            circ.append(('CNOT', qb-1, qb))
+            circ.append((('RX', delta_t * 2 * h), qb))
+
     def layer_fw(circ):
-        circ.append((('RX', delta_t * h), 0))
-        for i in range(nb_qubits-1):
-            circ.append(('CNOT', i, i+1))
-            circ.append((('RY', -theta), i+1))
-            circ.append((('RZ', phi), i+1))
-            circ.append((('RY', theta), i+1))
-            circ.append(('CNOT', i, i+1))
+        for qb in range(nb_qubits):
+            apply_trotter(circ, qb)
 
     def layer_bw(circ):
-        for i in range(nb_qubits-2, 0, -1):
-            circ.append(('CNOT', i, i+1))
-            circ.append((('RY', -theta), i+1))
-            circ.append((('RZ', phi), i+1))
-            circ.append((('RY', theta), i+1))
-            circ.append(('CNOT', i, i+1))
-        circ.append((('RX', delta_t * h), 0))
+        for qb in range(nb_qubits-1, -1, -1):
+            apply_trotter(circ, qb)
 
     for _ in range(nb_trotter // 2):
         layer_fw(circ)
