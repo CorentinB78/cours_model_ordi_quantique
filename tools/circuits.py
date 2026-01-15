@@ -23,6 +23,11 @@ def invert_circuit(circuit):
     return out
 
 
+def shift_qubits(circuit, shift: int):
+    """ Returns new circuit with qubits shifted by `shift`. """
+    return [(op[0], *(qb + shift for qb in op[1:])) for op in circuit]
+
+
 ######## Useful circuits #########
 
 def make_GHZ_circuit(nb_qubits):
@@ -123,20 +128,48 @@ def make_inv_QFT_circuit(nb_qubits):
     return invert_circuit(make_QFT_circuit(nb_qubits))
 
 
-def make_QPE_circuit_phase(nb_result_qubits, alpha=None):
-    """Circuit for Quantum Phase Estimation with U being a phase gate on a single qubit with a mysterious phase..."""
+def _make_CU_Ising(nb_qubits, nb_trotter, delta_t, J=1.0, h=0.2):
+    assert nb_trotter % 2 == 0
+    _nb_trotter = nb_trotter // 2
+    
+    def CU_Ising(x: int):
+        assert x >= 1
+
+        circ_ising = make_circuit_ising(nb_qubits, nb_trotter=x * _nb_trotter, delta_t=-delta_t, J=J, h=h)
+        circ = shift_qubits(circ_ising, 1)
+        
+        for i in range(nb_qubits):
+            circ.append(('SWAP', i, i+1))
+            if i % 2 == 0:
+                circ.append((('C', 'Z'), i+1, i))
+            else:
+                circ.append((('C', 'Y'), i+1, i))
+
+        circ.extend(circ_ising)
+            
+        for i in range(nb_qubits-1, -1, -1):
+            if i % 2 == 0:
+                circ.append((('C', 'Z'), i+1, i))
+            else:
+                circ.append((('C', 'Y'), i+1, i))
+            circ.append(('SWAP', i, i+1))
+                
+        return circ
+        
+    return CU_Ising
+
+
+def _make_QPE_circuit(nb_result_qubits, CU_gen):
     if nb_result_qubits <= 0:
         raise ValueError("Nb of qubits must be > 0")
     out = []
-
-    if alpha is None:
-        alpha = _mysterious_alpha
 
     for k in range(nb_result_qubits):
         out.append(('H', k))
         
     for k in range(nb_result_qubits):
-        out.append((('C', ('P', alpha * float(2**k))), nb_result_qubits - 1, nb_result_qubits))
+        out = out + shift_qubits(CU_gen(2**k), nb_result_qubits - 1)
+        # out.append((('C', ('P', alpha * float(2**k))), nb_result_qubits - 1, nb_result_qubits))
         for i in range(nb_result_qubits - 2, k-1, -1):
             out.append(('SWAP', i, i+1))
 
@@ -147,3 +180,21 @@ def make_QPE_circuit_phase(nb_result_qubits, alpha=None):
 
     return out
 
+
+def make_QPE_circuit_phase(nb_result_qubits, alpha=None):
+    """Circuit for Quantum Phase Estimation with U being a phase gate on a single qubit with a mysterious phase..."""
+    if alpha is None:
+        alpha = _mysterious_alpha
+        
+    circ = _make_QPE_circuit(nb_result_qubits, lambda x: [(('C', ('P', alpha * float(x))), 0, 1)])
+
+    return circ
+
+
+def make_QPE_circuit_Ising(nb_Ising_qubits, nb_result_qubits, nb_trotter, delta_t, J=1.0, h=0.2):
+    """Circuit for Quantum Phase Estimation of an Ising chain Hamiltonian."""
+    
+    CU_Ising = _make_CU_Ising(nb_Ising_qubits, nb_trotter, delta_t, J=J, h=h)    
+    circ = _make_QPE_circuit(nb_result_qubits, CU_Ising)
+
+    return circ
